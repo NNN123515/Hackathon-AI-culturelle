@@ -6,3 +6,4 @@ docx
 sentence_transformers
 chunking
 openpyxl
+accelerate
