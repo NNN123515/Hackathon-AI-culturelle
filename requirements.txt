@@ -3,7 +3,7 @@ pypdf
 python-docx
 fastparquet
 docx
-sentence_transformers
+transformers
 chunking
 openpyxl
 accelerate
