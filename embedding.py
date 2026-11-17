@@ -63,7 +63,7 @@ if __name__ == "__main__":
     #    "J'ai faim."
     #]
 
-    chunks = list(load_jsonl("data/chunks/basilic.jsonl"))          
+    chunks = list(load_jsonl("data/chunks/parser.jsonl"))          
     print("Nombre de chunks :", len(chunks))
 
     embedding_model = EmbeddingModel()
