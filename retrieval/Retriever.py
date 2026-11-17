@@ -6,9 +6,10 @@ class Retriever:
         self.vector_store = vector_store
         self.top_k = top_k
 
-    def retrieve(self, question):
+    #ajout d'un champ where car lancedb permet la recherche sql
+    def retrieve(self, question, where=None):
 
         query_embedding = self.embedding_model.embed_query(question)
-        results = self.vector_store.search(query_embedding, top_k=self.top_k)
+        results = self.vector_store.search(query_embedding, top_k=self.top_k, where=where)
 
         return results

@@ -4,9 +4,9 @@ class RetrievalPipeline:
         self.retriever = retriever
         self.context_builder = context_builder
 
-    def run(self, question):
+    def run(self, question, where=None):
 
-        retrieved_chunks = self.retriever.retrieve(question)
+        retrieved_chunks = self.retriever.retrieve(question, where=where)
         context = self.context_builder.build_context(retrieved_chunks)
 
         return {
