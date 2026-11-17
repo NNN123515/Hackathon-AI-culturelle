@@ -1,6 +1,6 @@
 
 from sentence_transformers import SentenceTransformer
-#from chunking import load_jsonl
+from chunking import load_jsonl
 
 
 class EmbeddingModel:
@@ -36,20 +36,19 @@ class EmbeddingModel:
 
 if __name__ == "__main__":
 
+    #chunks = [
+    #    "Napoléon était petit.",
+    #    "J'ai faim."
+    #]
+
+    chunks = list(load_jsonl("data/chunks/basilic.jsonl"))          
+    print("Nombre de chunks :", len(chunks))
+
     embedding_model = EmbeddingModel()
 
-    chunks = [
-        "Napoléon était petit.",
-        "J'ai faim."
-    ]
-
-    #chunks = list(load_jsonl("data/chunks/basilic.jsonl"))          
-
-    question = "Qui a peint la Joconde ?"
-
     document_vectors = embedding_model.embed_documents(chunks)
-    question_vector = embedding_model.embed_query(question)
-
-    print("Nombre de chunks :", len(chunks))
     print("Dimensions des embeddings :", document_vectors.shape)
-    print("Dimensions de la question :", question_vector.shape)
+    
+    question = "Qui a peint la Joconde ?"
+    query_vector = embedding_model.embed_query(question)
+    print("Dimensions de la question :", query_vector.shape)
