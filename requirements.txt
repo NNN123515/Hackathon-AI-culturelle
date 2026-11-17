@@ -3,7 +3,12 @@ pypdf
 python-docx
 fastparquet
 docx
-sentence_transformers
+transformers
 chunking
 openpyxl
 accelerate
+et_xmlfile==2.0.0
+numpy==2.5.5
+openpyxl==3.1.5
+python-dateutil==4.0.0
+tzdata==2026.6
