@@ -1,82 +1,83 @@
-from logging import exception
 import os
 from google import genai
 from google.genai import types
+from openai import OpenAI
 
 class ModelGeneratorAPI:
-  """Classe responsable de la génération de réponses globales
-  à partir du contexte, en utilisant l'API Google GenAI (Gemini).
-  """
+    def __init__(self, model_name: str = "meta-llama/llama-3.1-8b-instruct:free"):
+        self.model_name = model_name
+        # Client Gemini existant
+        self.gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        
+        # Clients compatibles OpenAI (initialisés si la clé est présente dans le .env)
+        self.groq_client = OpenAI(
+            base_url="https://api.groq.com/openai/v1",
+            api_key=os.getenv("GROQ_API_KEY")
+        ) if os.getenv("GROQ_API_KEY") else None
 
-  def __init__(self, model_name: str = "gemini-3.5-flash-lite"):
-    """Initialise le client Gemini.
-
-    """
-    api_key = os.getenv("GEMINI_API_KEY")
-
-    if not api_key:
-        raise ValueError("La variable d'environnement GEMINI_API_KEY est introuvable !")
-    
-    self.model_name = model_name
-    print(f"Initialisation du client Google GenAI avec le modèle : {model_name}...")
-    
-    # Le client récupère automatiquement la clé dans os.environ["GEMINI_API_KEY"]
-    self.client = genai.Client(api_key=api_key)
-
-  def change_model(self, new_model_name: str):
-        """Change le modèle utilisé pour la génération de réponses."""
-
+    def change_model(self, new_model_name: str):
         self.model_name = new_model_name
 
-  def generate_response_stream(self, query: str, context: str = None):
-    """Prend tout le contexte global, l'injecte dans le prompt,
-    puis génère et transmet la réponse en streaming via l'API Gemini.
-    """
+    def generate_response_stream(self, query: str, context: str = None):
+        # 1. Préparation du prompt (identique à votre logique actuelle)
+        if context is None or not context.strip():
+            system_instruction = None
+            prompt = query
+        else:
+            system_instruction = (
+                "Tu es un expert rigoureux de la médiation culturelle et historique. "
+                "Ton rôle est d'analyser la pertinence, la véracité, le style et les "
+                "éventuels biais ou hallucinations des réponses fournies."
+            )
+            prompt = (
+                f"Contexte documentaire (Patrimoine et Culture) :\n{context}\n\n"
+                f"Réponse à traiter : {query}\n\n"
+                "Consignes d'évaluation :\n"
+                "1. Appuie-toi exclusivement sur le contexte fourni issu d'une base de données culturelle.\n"
+                "2. Identifie et signale tout potentiel biais, anachronisme ou hallucination.\n"
+                "3. Évalue le style linguistique et le ton employé (précise s'il est adapté).\n"
+                "4. Indique clairement si le contexte manque de preuves, sans jamais inventer d'informations.\n"
+                "5. Si aucun biais ou problème n'est détecté, précise-le explicitement."
+            )
 
-    if context is None or not context.strip():
-        #Cas où le contexte est vide ou None, c'est à dire que il s'agit d'une simple question dont le modèle doit répondre
-        #On doit donc générer une réponse classique
-        system_instruction = None
-        prompt = query
+        try:
+            # 2. Routage vers Gemini
+            if "gemini" in self.model_name.lower():
+                response = self.gemini_client.models.generate_content_stream(
+                    model=self.model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.5
+                    )
+                )
+                for chunk in response:
+                    if chunk.text:
+                        yield chunk.text
 
-    else:
-        #Dans ce cas, on doit faire l'évaluation de la réponse d'un modèle par rapport à un contexte culturel et patrimonial fourni.
-        system_instruction = (
-            "Tu es un expert rigoureux de la médiation culturelle et historique. "
-            "Ton rôle est d'analyser la pertinence, la véracité, le style et les "
-            "éventuels biais ou hallucinations des réponses fournies."
-            "Tu dois pour cela te baser sur une base de données culturelle et patrimoniale fournie afin d'évaluer la réponse d'un modèle d'IA."
-            "Les réponses que tu dois évaluer proviennent d'un modèle d'IA suite à une requête utilisateur (aucun contexte supplémentaire n'a été fourni)."
-        )
+            # 3. Routage vers Groq ou Mistral (format OpenAI unifié)
+            else:
+                client = self.groq_client
 
-        prompt = (
-            f"Contexte documentaire (Patrimoine et Culture) :\n{context}\n\n"
-            f"Réponse à traiter : {query}\n\n"
-            "Consignes d'évaluation :\n"
-            "1. Appuie-toi exclusivement sur le contexte fourni issu d'une base de données culturelle.\n"
-            "2. Identifie et signale tout potentiel biais, anachronisme ou hallucination.\n"
-            "3. Évalue le style linguistique et le ton employé (précise s'il est adapté).\n"
-            "4. Indique clairement si le contexte manque de preuves, sans jamais inventer d'informations.\n"
-            "5. Si aucun biais ou problème n'est détecté, précise-le explicitement."
-        )
+                print(f"Utilisation du client Groq pour le modèle {self.model_name}")
+                messages = []
+                if system_instruction:
+                    messages.append({"role": "system", "content": system_instruction})
+                messages.append({"role": "user", "content": prompt})
 
-    try:
-      # Utilisation de l'API de streaming de Gemini
-      response = self.client.models.generate_content_stream(
-          model=self.model_name,
-          contents=prompt,
-          config=types.GenerateContentConfig(
-              system_instruction=system_instruction,
-              temperature=0.5
-          )
-      )
+                stream = client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    temperature=0.5,
+                    stream=True
+                )
+                for chunk in stream:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        yield content
 
-      for chunk in response:
-        if chunk.text:
-          yield chunk.text
-
-    except Exception as e:
-      yield f"\n[Erreur API Gemini] : {e}"
+        except Exception as e:
+            yield f"\n[Erreur API ({self.model_name})] : {e}"
 
 if __name__ == "__main__":
 

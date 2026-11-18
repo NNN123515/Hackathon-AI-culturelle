@@ -15,6 +15,22 @@ app = FastAPI(
 # Initialisation globale de l'application RAG (charge le VectorStore et le modèle par défaut)
 rag_app = RAGApplication(top_k=5)
 
+LOCAL_MODELS_LIST = {
+    "Qwen/Qwen2.5-1.5B-Instruct",
+    "Qwen/Qwen2.5-3B-Instruct",
+    "microsoft/Phi-3-mini-4k-instruct"
+}
+
+API_MODELS_LIST = {
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "openai/gpt-oss-20b",
+    "openai/gpt-oss-120b",
+    "qwen/qwen3.8-27b"
+}
+
+AVAILABLE_MODELS = tuple(LOCAL_MODELS_LIST.union(API_MODELS_LIST))
+
 # --- Routes de l'API ---
 
 @app.get("/")
@@ -40,16 +56,34 @@ async def generate_response(question: str, where: Optional[str] = None):
 
     return StreamingResponse(token_generator(), media_type="text/plain")
 
-
 @app.post("/change_model")
 def change_model(new_model: str):
     """
-    Modifie le modèle LLM utilisé pour la génération et l'évaluation.
+    Modifie le modèle utilisé.
     """
-
     try:
-        rag_app.generator.change_model(new_model)
+        # Déterminer le type cible (Local ou API)
+        target_type = "Local" if new_model in LOCAL_MODELS_LIST else "API"
+        
+        # Déterminer le type actuellement actif
+        current_type = "Local" if "Local" in rag_app.generator.__class__.__name__ else "API"
+
+        # Si on passe d'API à Local (ou inversement), on change le type 
+        # (L'idéal est de passer le nom du modèle pour l'initialiser directement)
+        if target_type != current_type:
+            # On vérifie si ta méthode supporte de prendre le nom du modèle
+            if "model_name" in rag_app.change_model_type.__code__.co_varnames:
+                rag_app.change_model_type(target_type, model_name=new_model)
+                # Pas besoin de faire change_model() car il a été instancié avec le bon
+            else:
+                rag_app.change_model_type(target_type)
+                rag_app.generator.change_model(new_model)
+        else:
+            # Si on reste dans le même type (ex: Local -> Local), on change juste les poids
+            rag_app.generator.change_model(new_model)
+
         return {
+            "success": True,
             "current_model": rag_app.generator.model_name
         }
     except Exception as e:
@@ -62,11 +96,26 @@ def get_current_model():
     """
     return {"current_model": rag_app.generator.model_name}
 
+@app.get("/models/local")
+def list_local_models():
+    """
+    Renvoie simplement la liste des noms de modèles locaux disponibles.
+    """
+    return LOCAL_MODELS_LIST
+
+@app.get("/models/api")
+def list_api_models():
+    """
+    Renvoie simplement la liste des noms de modèles API disponibles.
+    """
+    return API_MODELS_LIST
+
 @app.post("/evaluate")
 async def evaluate_response(query: str, where: Optional[str] = None):
     """
     Applique le 'modèle d'évaluation' en streaming direct.
     """
+
     try:
         # Définition d'un générateur interne qui produit les chunks
         def token_generator():

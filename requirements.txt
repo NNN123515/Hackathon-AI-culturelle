@@ -18,6 +18,7 @@ python-dotenv
 google-genai
 uvicorn
 fastapi
+openai
 et_xmlfile==2.0.0
 fastparquet==2026.9.0
 filelock==4.2.4
