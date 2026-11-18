@@ -1,0 +1,137 @@
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse 
+from typing import Optional
+import json
+
+from rag_app import RAGApplication
+
+# Initialisation de l'application FastAPI
+app = FastAPI(
+    title="API IA Culturelle",
+    description="API FastAPI permettant d'évaluer, à l'aide d'un modèle d'IA, la pertinence et la véracité des réponses générées par un modèle d'IA par rapport à un contexte culturel et patrimonial fourni.",
+    version="1.0.0"
+)
+
+# Initialisation globale de l'application RAG (charge le VectorStore et le modèle par défaut)
+rag_app = RAGApplication(top_k=5)
+
+# --- Routes de l'API ---
+
+@app.get("/")
+def read_root():
+    """Route racine pour vérifier l'état de l'API."""
+    return {
+        "status": "online",
+        "message": "Bienvenue sur l'API RAG et d'Évaluation.",
+        "current_model": rag_app.generator.model_name
+    }
+
+
+@app.post("/generate")
+async def generate_response(question: str, where: Optional[str] = None):
+    """
+    Reçoit une requête utilisateur et renvoie la réponse en streaming pur.
+    """
+    def token_generator():
+        # Assurez-vous que votre méthode produit bien les chunks textuels
+        for chunk in rag_app.answer_query(question=question, rag=False):
+            print(f"{chunk}") 
+            yield chunk
+
+    return StreamingResponse(token_generator(), media_type="text/plain")
+
+
+@app.post("/change_model")
+def change_model(new_model: str):
+    """
+    Modifie le modèle LLM utilisé pour la génération et l'évaluation.
+    """
+
+    try:
+        rag_app.generator.change_model(new_model)
+        return {
+            "current_model": rag_app.generator.model_name
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/get_model")
+def get_current_model():
+    """
+    Récupère le nom du modèle actuellement configuré.
+    """
+    return {"current_model": rag_app.generator.model_name}
+
+@app.post("/evaluate")
+async def evaluate_response(query: str, where: Optional[str] = None):
+    """
+    Applique le 'modèle d'évaluation' en streaming direct.
+    """
+    try:
+        # Définition d'un générateur interne qui produit les chunks
+        def token_generator():
+            for chunk in rag_app.answer_query(question=query, where=where, rag=True):
+                print(f"{chunk}")
+                yield chunk
+
+        # On retourne une StreamingResponse avec un type texte/plain (ou text/event-stream)
+        return StreamingResponse(token_generator(), media_type="text/plain")
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/run-full-pipeline")
+async def run_full_pipeline(question: str, where: Optional[str] = None):
+    """
+    Exécute l'enchaînement complet en streaming (SSE) : 
+    1. Stream la génération de la réponse initiale (sans RAG).
+    2. Récupère le contexte RAG.
+    3. Stream le rapport d'évaluation des biais basé sur ce contexte.
+    4. Envoie l'objet récapitulatif complet à la fin.
+    """
+    async def event_generator():
+        try:
+            # Génération de la réponse initiale en streaming ---
+            yield f"data: {json.dumps({'status': 'start_generation'})}\n\n"
+            generated_answer = ""
+            
+            # On s'assure d'itérer proprement sur le générateur
+            for chunk in rag_app.generator.generate_response_stream(query=question, context=None):
+                if chunk:
+                    generated_answer += chunk
+                    print(f"{chunk}", end="", flush=True)
+                    yield f"data: {json.dumps({'type': 'gen_chunk', 'content': chunk})}\n\n"
+
+            # Récupération du contexte RAG ---
+            yield f"data: {json.dumps({'status': 'retrieving_rag'})}\n\n"
+            retrieval_result = rag_app.pipeline.run(question, where=where)
+            context = retrieval_result.get("context", "")
+            
+            yield f"data: {json.dumps({'type': 'rag_context', 'content': context})}\n\n"
+
+            # Évaluation de la réponse générée en streaming ---
+            yield f"data: {json.dumps({'status': 'start_evaluation'})}\n\n"
+            evaluation_report = ""
+            
+            for chunk in rag_app.generator.generate_response_stream(query=generated_answer, context=context):
+                if chunk:
+                    evaluation_report += chunk
+                    print(f"{chunk}", end="", flush=True)
+                    yield f"data: {json.dumps({'type': 'eval_chunk', 'content': chunk})}\n\n"
+
+            # Message de fin avec le résumé complet ---
+            final_payload = {
+                "status": "completed",
+                "question": question,
+                "model_used": rag_app.generator.model_name,
+                "generated_response": generated_answer,
+                "rag_context": context,
+                "evaluation_report": evaluation_report
+            }
+            yield f"data: {json.dumps(final_payload)}\n\n"
+
+        except Exception as e:
+            # En cas d'erreur interne, on l'envoie proprement dans le flux SSE
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")

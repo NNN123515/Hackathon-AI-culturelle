@@ -1,3 +1,4 @@
+from logging import exception
 import os
 from google import genai
 from google.genai import types
@@ -44,11 +45,13 @@ class ModelGeneratorAPI:
             "Tu es un expert rigoureux de la médiation culturelle et historique. "
             "Ton rôle est d'analyser la pertinence, la véracité, le style et les "
             "éventuels biais ou hallucinations des réponses fournies."
+            "Tu dois pour cela te baser sur une base de données culturelle et patrimoniale fournie afin d'évaluer la réponse d'un modèle d'IA."
+            "Les réponses que tu dois évaluer proviennent d'un modèle d'IA suite à une requête utilisateur (aucun contexte supplémentaire n'a été fourni)."
         )
 
         prompt = (
             f"Contexte documentaire (Patrimoine et Culture) :\n{context}\n\n"
-            f"Réponse / Question à traiter : {query}\n\n"
+            f"Réponse à traiter : {query}\n\n"
             "Consignes d'évaluation :\n"
             "1. Appuie-toi exclusivement sur le contexte fourni issu d'une base de données culturelle.\n"
             "2. Identifie et signale tout potentiel biais, anachronisme ou hallucination.\n"
@@ -64,8 +67,7 @@ class ModelGeneratorAPI:
           contents=prompt,
           config=types.GenerateContentConfig(
               system_instruction=system_instruction,
-              temperature=0.5,
-              max_output_tokens=300,
+              temperature=0.5
           )
       )
 
@@ -76,29 +78,16 @@ class ModelGeneratorAPI:
     except Exception as e:
       yield f"\n[Erreur API Gemini] : {e}"
 
-  def generate_dual_stream(
-      self, query1: str, context1: str = None, query2: str = None, context2: str = None
-  ):
-    """Exécute les deux requêtes l'une après l'autre."""
-
-    for chunk in self.generate_response_stream(query1, context1):
-        yield ("model1", chunk)
-
-    for chunk in self.generate_response_stream(query2, context2):
-        yield ("model2", chunk)
-
-
 if __name__ == "__main__":
 
   from dotenv import load_dotenv
   load_dotenv()  # Charger les variables d'environnement depuis le fichier .env
   
   model_generator = ModelGeneratorAPI()
-  
-  context1 = None
-  query1 = "Quelle est la capitale de la France ?"
+  query =  """L'Allemagne est elle un pays ?"""
 
-  for tag, chunk in model_generator.generate_dual_stream(
-      query1, context1, "Quelle est l'allemagne ?", None
-  ):
-    print(f"[{tag}] {chunk}", end="", flush=True)
+  for chunk in model_generator.generate_response_stream(query=query):
+    print(f"{chunk}", end="", flush=True)
+
+
+    

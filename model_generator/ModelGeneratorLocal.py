@@ -1,4 +1,3 @@
-import queue
 from threading import Thread
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
@@ -59,10 +58,11 @@ class ModelGeneratorLocal:
             {
                 "role": "system",
                 "content": (
-                    "Tu es un expert rigoureux de la médiation culturelle et"
-                " historique. Ton rôle est d'analyser la pertinence, la"
-                " véracité, le style et les éventuels biais ou hallucinations"
-                " des réponses de modèles d'IA fournies."
+                        "Tu es un expert rigoureux de la médiation culturelle et historique. "
+                        "Ton rôle est d'analyser la pertinence, la véracité, le style et les "
+                        "éventuels biais ou hallucinations des réponses fournies."
+                        "Tu dois pour cela te baser sur une base de données culturelle et patrimoniale fournie afin d'évaluer la réponse d'un modèle d'IA."
+                        "Les réponses que tu dois évaluer proviennent d'un modèle d'IA suite à une requête utilisateur (aucun contexte supplémentaire n'a été fourni)."
             ),
         },
         {
@@ -113,63 +113,9 @@ class ModelGeneratorLocal:
       if new_text:
         yield new_text
 
-  def generate_dual_stream(
-      self, query1: str, context1: str, query2: str, context2: str
-  ):
-    """Exécute les deux requêtes l'une après l'autre de manière sécurisée
-
-    pour éviter les conflits de GPU (device mismatch avec accelerate).
-    """
-    for chunk in self.generate_response_stream(query1, context1):
-        yield ("model1", chunk)
-
-    for chunk in self.generate_response_stream(query2, context2):
-        yield ("model2", chunk)
-
-  def generate_dual_stream_threading(
-      self, query1: str, context1: str = None, query2: str = None, context2: str = None
-  ):
-    """Permet de lancer deux requêtes en parallèle (attention aux risques de crash
-    GPU avec accelerate selon la version, préférer generate_dual_stream si instable).
-    """
-    result_queue = queue.Queue()
-
-    def worker(query, context, tag):
-      try:
-        for chunk in self.generate_response_stream(query, context):
-          result_queue.put((tag, chunk))
-      except Exception as e:
-        result_queue.put((tag, f"[Erreur] {e}"))
-      result_queue.put((tag, None))
-
-    t1 = Thread(target=worker, args=(query1, context1, "model1"))
-    t2 = Thread(target=worker, args=(query2, context2, "model2"))
-
-    t1.start()
-    t2.start()
-
-    active_threads = 2
-    while active_threads > 0:
-      tag, chunk = result_queue.get()
-      if chunk is None:
-        active_threads -= 1
-      else:
-        yield (tag, chunk)
-
-    t1.join()
-    t2.join()
-
-
 if __name__ == "__main__":
   model_generator = ModelGeneratorLocal()
-  context1 = None
-  query1 = "Quelle est la capitale de la France ?"
+  query = "Quelle est la capitale de l'Allemagne ?"
 
-  context2 = None
-  query2 = "Quelle est la capitale de l'Allemagne ?"
-
-  # Si tu as des erreurs de device avec accelerate, tu pourras remplacer par .generate_dual_stream(...)
-  for tag, chunk in model_generator.generate_dual_stream(
-      query1, context1, query2, context2
-  ):
-    print(f"[{tag}] {chunk}", end="", flush=True)
+  for chunk in model_generator.generate_response_stream(query=query, context="L'Allemagne est un pays d'Europe centrale. Sa capitale est Berlin."):
+    print(chunk, end="", flush=True)
