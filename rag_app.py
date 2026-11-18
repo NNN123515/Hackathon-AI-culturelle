@@ -30,13 +30,20 @@ class RAGApplication:
         else:
             self.generator = ModelGeneratorLocal()
 
-    def change_model_type(self, new_model_type: str):
-        """Change le type de modèle utilisé pour la génération de réponses."""
-        if new_model_type == "API":
-            self.generator = ModelGeneratorAPI()
-        else:
-            self.generator = ModelGeneratorLocal()
-    
+    def change_model_type(self, target_type: str, model_name: str = None):
+        if target_type == "Local":
+            # S'il y a un modèle fourni, on l'initialise avec. Sinon, comportement par défaut.
+            if model_name:
+                self.generator = ModelGeneratorLocal(model_name=model_name)
+            else:
+                self.generator = ModelGeneratorLocal()
+                
+        elif target_type == "API":
+            if model_name:
+                self.generator = ModelGeneratorAPI(model_name=model_name)
+            else:
+                self.generator = ModelGeneratorAPI()
+        
     def answer_query(self, question: str, where: str = None, rag=True):
         """Exécute la recherche (retriever) pour obtenir le contexte,
         puis génère la réponse en streaming classique.

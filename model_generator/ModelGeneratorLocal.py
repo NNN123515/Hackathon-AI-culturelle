@@ -2,6 +2,22 @@ from threading import Thread
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
 
+# Dictionnaire des modèles locaux disponibles avec leur description/taille indicative
+LOCAL_MODELS_CONFIG = {
+    "qwen-2.5-3b": {
+        "name": "Qwen/Qwen2.5-3B-Instruct",
+        "description": "Modèle performant de 3 milliards de paramètres (Idéal GPU / CPU puissant)"
+    },
+    "qwen-2.5-1.5b": {
+        "name": "Qwen/Qwen2.5-1.5B-Instruct",
+        "description": "Modèle léger de 1.5 milliard de paramètres (Parfait pour tourner rapidement sur CPU)"
+    },
+    "phi-3-mini": {
+        "name": "microsoft/Phi-3-mini-4k-instruct",
+        "description": "Très rapide et performant sur CPU"
+    }
+}
+
 class ModelGeneratorLocal:
   """Classe responsable de la génération de réponses globales
 
