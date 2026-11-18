@@ -4,6 +4,7 @@ from indexation import VectorStore
 from retrieval.Retriever import Retriever
 from retrieval.ContextBuilder import ContextBuilder
 from retrieval.RetrievalPipeline import RetrievalPipeline
+from location_filter import LocationFilter
 from model_generator.ModelGeneratorAPI import ModelGeneratorAPI
 from model_generator.ModelGeneratorLocal import ModelGeneratorLocal
 
@@ -20,7 +21,8 @@ class RAGApplication:
         # Configurer le pipeline de retrieval
         self.retriever = Retriever(self.embedding_model, self.store, top_k=top_k)
         self.context_builder = ContextBuilder()
-        self.pipeline = RetrievalPipeline(self.retriever, self.context_builder)
+        self.pipeline = RetrievalPipeline(self.retriever, self.context_builder,
+                                          location_filter=LocationFilter(self.store))
 
         # Initialiser le modèle de génération
         if model_type == "API":
