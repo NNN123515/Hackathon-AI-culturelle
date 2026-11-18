@@ -23,17 +23,43 @@ class ModelGeneratorLocal:
         device_map="auto",
         trust_remote_code=True,
     )
+  
+  def change_model(self, new_model_name: str):
+        """Change le modèle utilisé pour la génération de réponses."""
 
-  def generate_response_stream(self, query: str, context: str):
+        self.model_name = new_model_name
+        print(f"Chargement du nouveau modèle de génération : {new_model_name}...")
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            new_model_name, trust_remote_code=True
+        )
+        self.model = AutoModelForCausalLM.from_pretrained(
+            new_model_name,
+            dtype=torch.float16,
+            device_map="auto",
+            trust_remote_code=True,
+        )
+
+  def generate_response_stream(self, query: str, context: str = None):
     """Prend tout le contexte global, l'injecte dans le template de chat,
 
     puis génère et transmet la réponse en streaming.
     """
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "Tu es un expert rigoureux de la médiation culturelle et"
+
+    if context is None or not context.strip():
+        # Cas où le contexte est vide ou None, c'est à dire que il s'agit d'une simple question dont le modèle doit répondre
+        # On doit donc générer une réponse classique
+        messages = [
+            {"role": "user", "content": query}
+        ]
+    else:
+        # Dans ce cas, on doit faire l'évaluation de la réponse d'un modèle par rapport à un contexte culturel et patrimonial fourni.
+        # On va donc utiliser un template de chat avec un rôle système pour guider le modèle.
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "Tu es un expert rigoureux de la médiation culturelle et"
                 " historique. Ton rôle est d'analyser la pertinence, la"
                 " véracité, le style et les éventuels biais ou hallucinations"
                 " des réponses de modèles d'IA fournies."
@@ -94,23 +120,16 @@ class ModelGeneratorLocal:
 
     pour éviter les conflits de GPU (device mismatch avec accelerate).
     """
-    if not context1 or not context1.strip():
-      yield ("model1", "Aucun contexte disponible pour répondre.")
-    else:
-      for chunk in self.generate_response_stream(query1, context1):
+    for chunk in self.generate_response_stream(query1, context1):
         yield ("model1", chunk)
 
-    if not context2 or not context2.strip():
-      yield ("model2", "Aucun contexte disponible pour répondre.")
-    else:
-      for chunk in self.generate_response_stream(query2, context2):
+    for chunk in self.generate_response_stream(query2, context2):
         yield ("model2", chunk)
 
   def generate_dual_stream_threading(
-      self, query1: str, context1: str, query2: str, context2: str
+      self, query1: str, context1: str = None, query2: str = None, context2: str = None
   ):
     """Permet de lancer deux requêtes en parallèle (attention aux risques de crash
-
     GPU avec accelerate selon la version, préférer generate_dual_stream si instable).
     """
     result_queue = queue.Queue()
@@ -143,10 +162,10 @@ class ModelGeneratorLocal:
 
 if __name__ == "__main__":
   model_generator = ModelGeneratorLocal()
-  context1 = "La capitale de la France est Paris. C'est une ville connue pour sa culture, son histoire et ses monuments emblématiques comme la Tour Eiffel et le Louvre."
+  context1 = None
   query1 = "Quelle est la capitale de la France ?"
 
-  context2 = "La capitale de l'Allemagne est Berlin. C'est une ville riche en histoire, notamment pour son rôle dans la Seconde Guerre mondiale et la Guerre froide."
+  context2 = None
   query2 = "Quelle est la capitale de l'Allemagne ?"
 
   # Si tu as des erreurs de device avec accelerate, tu pourras remplacer par .generate_dual_stream(...)
