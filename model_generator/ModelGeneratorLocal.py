@@ -3,8 +3,7 @@ from threading import Thread
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
 
-
-class ModelGenerator:
+class ModelGeneratorLocal:
   """Classe responsable de la génération de réponses globales
 
   à partir de tout le contexte d'un seul coup, avec un affichage en streaming.
@@ -143,7 +142,7 @@ class ModelGenerator:
 
 
 if __name__ == "__main__":
-  model_generator = ModelGenerator()
+  model_generator = ModelGeneratorLocal()
   context1 = "La capitale de la France est Paris. C'est une ville connue pour sa culture, son histoire et ses monuments emblématiques comme la Tour Eiffel et le Louvre."
   query1 = "Quelle est la capitale de la France ?"
 

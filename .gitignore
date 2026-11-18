@@ -3,6 +3,7 @@ venv
 .env
 .venv
 data
+data2
 __pycache__/
 *.pyc
 *.zip
