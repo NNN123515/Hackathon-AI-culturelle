@@ -9,6 +9,8 @@ cramjam==2.14.0
 deprecation==2.1.0
 python-dotenv
 google-genai
+uvicorn
+fastapi
 et_xmlfile==2.0.0
 fastparquet==2026.9.0
 filelock==4.2.4
