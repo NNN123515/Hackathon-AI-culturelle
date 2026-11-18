@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050505">
+  <title>Elluna — Hackathon IA 2026</title>
+  <link rel="icon" type="image/png" href="assets/icon2.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar" aria-label="Partenaires">
+    <div class="partner partner-left"><img src="assets/logo-partenaire-gauche.png" alt="Logo partenaire"></div>
+    <div class="partner partner-center"><img src="assets/logo-universite.png" alt="Université de Lorraine"></div>
+    <div class="partner partner-right"><img src="assets/logo-telecom-nancy.png" alt="Télécom Nancy"></div>
+  </header>
+
+  <main class="stage">
+    <section class="hero" id="homeScreen">
+      <div class="artwork">
+        <img class="float-art art-statue" src="assets/statue2.png" alt="" />
+        <img class="float-art art-mascot" src="assets/mascotte2.png" alt="" />
+        <img class="float-art art-windows" src="assets/art2.png" alt="" />
+        <img class="float-art art-micro" src="assets/pinceau2.png" alt="" />
+        <img class="float-art art-camera" src="assets/camera2.png" alt="" />
+        <div class="brand">
+          <img class="brand-name" src="assets/brand.png" alt="" />
+          <p>Gare aux biais, testons les IA !</p>
+        </div>
+      </div>
+      <form class="question-bar" id="questionForm">
+        <label class="sr-only" for="question">Posez votre question</label>
+        <input id="question" name="question" type="text" placeholder="Posez votre question…" autocomplete="off">
+        <button type="submit" aria-label="Envoyer la question"><span aria-hidden="true">➜</span></button>
+      </form>
+      <p class="feedback" id="feedback" aria-live="polite"></p>
+    </section>
+
+    <section class="answer-screen" id="answerScreen" hidden>
+      <div class="answer-logo">
+        <img src="assets/brand-logo.png" alt="Elluna">
+      </div>
+      <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+        </div>
+      </div>
+      <div class="chat-input-container">
+
+        <form class="question-bar" id="followupForm">
+          <input
+                type="text"
+                id="followupInput"
+                placeholder="Posez votre question ..."
+          >
+          <button type="submit">➤</button>
+        </form>
+
+      </div>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
