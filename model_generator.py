@@ -1,3 +1,4 @@
+import queue
 from threading import Thread
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
@@ -19,7 +20,7 @@ class ModelGenerator:
     )
     self.model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        dtype=torch.float16,  # Économise la mémoire VRAM/RAM
+        dtype=torch.float16,
         device_map="auto",
         trust_remote_code=True,
     )
@@ -29,8 +30,6 @@ class ModelGenerator:
 
     puis génère et transmet la réponse en streaming.
     """
-
-    # Utilisation du format de chat officiel de Qwen (recommandé pour les modèles Instruct)
     messages = [
         {
             "role": "system",
@@ -47,7 +46,8 @@ class ModelGenerator:
                 f"Contexte documentaire (Patrimoine et Culture) :\n{context}\n\n"
                 f"Réponse d'un modèle : {query}\n\n"
                 "Consignes d'évaluation :\n"
-                "1. Appuie-toi exclusivement sur le contexte fourni issu d'une base de données culturelle.\n"
+                "1. Appuie-toi exclusivement sur le contexte fourni issu d'une"
+                " base de données culturelle.\n"
                 "2. Identifie et signale tout potentiel biais, anachronisme ou"
                 " hallucination dans la réponse.\n"
                 "3. Évalue le style linguistique et le ton employé (précise"
@@ -60,22 +60,18 @@ class ModelGenerator:
         },
     ]
 
-    # Application du template de chat du modèle
     text_prompt = self.tokenizer.apply_chat_template(
         messages, tokenize=False, add_generation_prompt=True
     )
 
-    # Tokenisation et envoi explicite sur le device du modèle (.to)
     inputs = self.tokenizer(
         text_prompt, return_tensors="pt", truncation=True, max_length=1536
     ).to(self.model.device)
 
-    # Configuration du streamer pour intercepter les mots générés en direct
     streamer = TextIteratorStreamer(
         self.tokenizer, skip_prompt=True, skip_special_tokens=True
     )
 
-    # Préparation des arguments pour la génération
     generation_kwargs = dict(
         **inputs,
         streamer=streamer,
@@ -85,20 +81,77 @@ class ModelGenerator:
         repetition_penalty=1.2,
     )
 
-    # Lancement de la génération dans un thread séparé
     thread = Thread(target=self.model.generate, kwargs=generation_kwargs)
     thread.start()
 
-    # Transmission de chaque morceau de texte généré en temps réel
     for new_text in streamer:
       if new_text:
         yield new_text
 
+  def generate_dual_stream(
+      self, query1: str, context1: str, query2: str, context2: str
+  ):
+    """Exécute les deux requêtes l'une après l'autre de manière sécurisée
+
+    pour éviter les conflits de GPU (device mismatch avec accelerate).
+    """
+    if not context1 or not context1.strip():
+      yield ("model1", "Aucun contexte disponible pour répondre.")
+    else:
+      for chunk in self.generate_response_stream(query1, context1):
+        yield ("model1", chunk)
+
+    if not context2 or not context2.strip():
+      yield ("model2", "Aucun contexte disponible pour répondre.")
+    else:
+      for chunk in self.generate_response_stream(query2, context2):
+        yield ("model2", chunk)
+
+  def generate_dual_stream_threading(
+      self, query1: str, context1: str, query2: str, context2: str
+  ):
+    """Permet de lancer deux requêtes en parallèle (attention aux risques de crash
+
+    GPU avec accelerate selon la version, préférer generate_dual_stream si instable).
+    """
+    result_queue = queue.Queue()
+
+    def worker(query, context, tag):
+      try:
+        for chunk in self.generate_response_stream(query, context):
+          result_queue.put((tag, chunk))
+      except Exception as e:
+        result_queue.put((tag, f"[Erreur] {e}"))
+      result_queue.put((tag, None))
+
+    t1 = Thread(target=worker, args=(query1, context1, "model1"))
+    t2 = Thread(target=worker, args=(query2, context2, "model2"))
+
+    t1.start()
+    t2.start()
+
+    active_threads = 2
+    while active_threads > 0:
+      tag, chunk = result_queue.get()
+      if chunk is None:
+        active_threads -= 1
+      else:
+        yield (tag, chunk)
+
+    t1.join()
+    t2.join()
+
 
 if __name__ == "__main__":
   model_generator = ModelGenerator()
-  context = "La capitale de la France est Paris. C'est une ville connue pour sa culture, son histoire et ses monuments emblématiques comme la Tour Eiffel et le Louvre."
-  query = "Quelle est la capitale de la France ?"
+  context1 = "La capitale de la France est Paris. C'est une ville connue pour sa culture, son histoire et ses monuments emblématiques comme la Tour Eiffel et le Louvre."
+  query1 = "Quelle est la capitale de la France ?"
 
-  for response in model_generator.generate_response_stream(query, context):
-    print(response, end="", flush=True)
+  context2 = "La capitale de l'Allemagne est Berlin. C'est une ville riche en histoire, notamment pour son rôle dans la Seconde Guerre mondiale et la Guerre froide."
+  query2 = "Quelle est la capitale de l'Allemagne ?"
+
+  # Si tu as des erreurs de device avec accelerate, tu pourras remplacer par .generate_dual_stream(...)
+  for tag, chunk in model_generator.generate_dual_stream(
+      query1, context1, query2, context2
+  ):
+    print(f"[{tag}] {chunk}", end="", flush=True)
