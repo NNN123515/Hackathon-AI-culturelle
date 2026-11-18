@@ -7,7 +7,7 @@ class ModelGeneratorAPI:
   à partir du contexte, en utilisant l'API Google GenAI (Gemini).
   """
 
-  def __init__(self, model_name: str = "gemini-3.8-flash"):
+  def __init__(self, model_name: str = "gemini-3.5-flash-lite"):
     """Initialise le client Gemini.
 
     """
@@ -75,9 +75,6 @@ class ModelGeneratorAPI:
 
 
 if __name__ == "__main__":
-  # N'oublie pas de définir ta clé dans ton terminal avant d'exécuter :
-  # export GEMINI_API_KEY="votre_clé_api" (sur Linux/Mac)
-  # set GEMINI_API_KEY="votre_clé_api" (sur Windows CMD)
   
   model_generator = ModelGeneratorAPI()
   

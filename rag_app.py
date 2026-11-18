@@ -74,7 +74,8 @@ class RAGApplication:
         
         # Appel du générateur en mode dual stream 
         for chunk in self.generator.generate_dual_stream(query1=query1, context1=context1, query2=query2, context2=context2):
-            print(chunk, end="", flush=True)
+            model_tag, text_chunk = chunk
+            print(text_chunk, end="", flush=True)
             
         print("\n")
 
