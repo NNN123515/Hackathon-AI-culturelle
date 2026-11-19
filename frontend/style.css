@@ -66,9 +66,7 @@ body {
   0%,100% { transform:translate3d(0,0,0) rotate(-1deg); }
   50% { transform:translate3d(0,-11px,0) rotate(2deg); }
 }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; }
-}
+
 @media (max-width: 650px) {
   .topbar { height:70px; padding:0 12px; }
   .partner img { max-width:100px; max-height:55%; }
