@@ -415,31 +415,92 @@ body {
 }
 
 
-.model-selector {
+
+/* Sélecteur de modèle */
+.model-picker {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    bottom: calc(clamp(26px, 6vh, 66px) + 54px);
+    transform: translateX(-50%);
+
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin: 15px auto;
-    flex-wrap: wrap;
+    gap: 10px;
+
+    padding: 6px 12px;
+    border: 1px solid #383838;
+    border-radius: 999px;
+    background: #191919;
+    box-shadow: 0 5px 22px rgba(0,0,0,.22);
+
+    color: #aaa;
+    font-size: 11px;
 }
 
-.model-selector label {
+.model-picker label {
+    font-size: 9px;
+    text-transform: uppercase;
+    color: #888;
+}
+
+.model-picker select {
+    max-width: 260px;
+    border: none;
+    outline: none;
+    border-radius: 999px;
+    padding: 6px 10px;
+    background: #363636;
     color: white;
-    font-size: 14px;
-}
-
-.model-selector select {
-    max-width: 100%;
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #aaa;
-    background: #fff;
-    color: #222;
     cursor: pointer;
 }
 
-#modelStatus {
-    font-size: 12px;
-    color: #aaa;
+.model-picker select:focus-visible {
+    box-shadow: 0 0 0 2px #888;
+}
+
+.model-status {
+    color: #888;
+    font-size: 10px;
+}
+
+/* Sélecteur dans la conversation */
+.chat-input-container {
+    position: relative;
+    padding-top: 58px;
+}
+
+.chat-input-container .model-picker {
+    position: absolute;
+    top: 5px;
+    bottom: auto;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.chat-input-container .question-bar {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    margin: 0 auto;
+}
+
+@media (max-width: 650px) {
+    .model-picker {
+        bottom: 82px;
+        max-width: calc(100% - 36px);
+    }
+
+    .model-picker select {
+        max-width: 55vw;
+    }
+
+    .chat-input-container {
+        padding-top: 54px;
+    }
+
+    .chat-input-container .question-bar {
+        width: 100%;
+    }
 }

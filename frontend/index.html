@@ -28,6 +28,13 @@
           <p>Gare aux biais, testons les IA !</p>
         </div>
       </div>
+      <div class="model-picker" data-model-picker>
+          <label for="modelSelectHome">Modèle</label>
+          <select id="modelSelectHome">
+              <option value="">Chargement des modèles…</option>
+          </select>
+          <span class="model-status" aria-live="polite"></span>
+      </div>
       <form class="question-bar" id="questionForm">
         <label class="sr-only" for="question">Posez votre question</label>
         <input id="question" name="question" type="text" placeholder="Posez votre question…" autocomplete="off">
@@ -40,19 +47,18 @@
       <div class="answer-logo">
         <img src="assets/brand-logo.png" alt="Elluna">
       </div>
-      <div class="model-selector">
-        <label for="modelSelect">Modèle utilisé :</label>
-        <select id="modelSelect" disabled>
-          <option>Chargement des modèles...</option>
-        </select>
-        <span id="modelStatus" aria-live="polite"></span>
-      </div>
       <div class="chat-container">
         <div class="chat-messages" id="chatMessages">
         </div>
       </div>
       <div class="chat-input-container">
-
+        <div class="model-picker" data-model-picker>
+            <label for="modelSelectHome">Modèle</label>
+            <select id="modelSelectHome">
+                <option value="">Chargement des modèles…</option>
+            </select>
+            <span class="model-status" aria-live="polite"></span>
+        </div>
         <form class="question-bar" id="followupForm">
           <input
                 type="text"
