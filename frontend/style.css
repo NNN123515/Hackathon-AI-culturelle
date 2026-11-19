@@ -270,6 +270,40 @@ body {
     overflow-wrap: anywhere;
 }
 
+/* Tableaux et titres produits par les modèles (markdown) */
+.ai-response-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.ai-response-content th,
+.ai-response-content td {
+    border: 1px solid #444;
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.ai-response-content th {
+    background: var(--bar);
+}
+
+.ai-response-content h1,
+.ai-response-content h2,
+.ai-response-content h3,
+.ai-response-content h4 {
+    margin: 16px 0 6px;
+    font-size: 16px;
+}
+
+.ai-response-content ul,
+.ai-response-content ol {
+    padding-left: 22px;
+}
+
 /* Apparition progressive */
 
 .chat-turn {

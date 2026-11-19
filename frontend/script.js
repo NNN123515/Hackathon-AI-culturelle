@@ -274,7 +274,18 @@ async function sendQuestionToAPI(question) {
         });
     }
 
-    let evaluationStarted = false;
+    // Affiche le markdown en vrai HTML (tableaux, titres, gras).
+    // Si les bibliothèques n'ont pas chargé (pas d'internet), on garde le texte brut.
+    function renderMarkdown(element, text) {
+        if (window.marked && window.DOMPurify) {
+            element.innerHTML = DOMPurify.sanitize(marked.parse(text));
+        } else {
+            element.textContent = text;
+        }
+    }
+
+    let answerText = "";
+    let evaluationText = "";
 
     try {
         await runFullPipeline(
@@ -282,18 +293,15 @@ async function sendQuestionToAPI(question) {
 
             // Réponse générée progressivement
             (chunk) => {
-                answer.textContent += chunk;
+                answerText += chunk;
+                renderMarkdown(answer, answerText);
                 scrollToBottom();
             },
 
             // Rapport d'évaluation progressivement
             (chunk) => {
-                if (!evaluationStarted) {
-                    evaluation.textContent = "";
-                    evaluationStarted = true;
-                }
-
-                evaluation.textContent += chunk;
+                evaluationText += chunk;
+                renderMarkdown(evaluation, evaluationText);
                 scrollToBottom();
             },
 
@@ -301,8 +309,8 @@ async function sendQuestionToAPI(question) {
             (result) => {
                 console.log("Pipeline terminé :", result);
 
-                if (!evaluationStarted && result.evaluation_report) {
-                    evaluation.textContent = result.evaluation_report;
+                if (!evaluationText && result.evaluation_report) {
+                    renderMarkdown(evaluation, result.evaluation_report);
                 }
 
                 scrollToBottom();
