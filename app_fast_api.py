@@ -174,7 +174,7 @@ async def run_full_pipeline(question: str, where: Optional[str] = None):
             yield f"data: {json.dumps({'status': 'start_evaluation'})}\n\n"
             evaluation_report = ""
             
-            for chunk in eval_generator.generate_response_stream(query=generated_answer, context=context):
+            for chunk in eval_generator.generate_response_stream(query=f"Question posée : {question}\n\nRéponse du modèle : {generated_answer}", context=context):
                 if chunk:
                     evaluation_report += chunk
                     print(f"{chunk}", end="", flush=True)
