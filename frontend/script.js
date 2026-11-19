@@ -187,7 +187,7 @@ async function generateAnswer(question, onChunk) {
 }
 
 // Génération + évaluation avec streaming SSE
-async function runFullPipeline(question, onGeneration, onEvaluation, onComplete) {
+async function runFullPipeline(question, onGeneration, onEvaluation, onComplete, onContext) {
     const params = new URLSearchParams({ question });
 
     const response = await fetch(
@@ -231,6 +231,11 @@ async function runFullPipeline(question, onGeneration, onEvaluation, onComplete)
                 onEvaluation?.(data.content);
             }
 
+            // Les données officielles envoyées au juge ("[Source 1]...", "[Source 2]...")
+            if (data.type === "rag_context") {
+                onContext?.(data.content);
+            }
+
             if (data.status === "completed") {
                 onComplete?.(data);
             }
@@ -257,7 +262,14 @@ async function sendQuestionToAPI(question) {
     answerSection.className = "ai-response";
 
     const answerTitle = document.createElement("h3");
-    answerTitle.textContent = "Réponse de l'IA";
+    answerTitle.className = "answer-title";
+
+    // Logo du modèle qui répond (rond gris pour l'instant)
+    const modelIcon = document.createElement("span");
+    modelIcon.className = "model-icon";
+
+    answerTitle.appendChild(modelIcon);
+    answerTitle.appendChild(document.createTextNode("Réponse de l'IA"));
 
     const answer = document.createElement("div");
     answer.className = "ai-response-content";
@@ -271,7 +283,14 @@ async function sendQuestionToAPI(question) {
     evaluationSection.className = "ai-response";
 
     const evaluationTitle = document.createElement("h3");
-    evaluationTitle.textContent = "Évaluation des biais";
+    evaluationTitle.className = "evaluation-title";
+
+    // Logo du juge : il tourne pendant que le juge réfléchit
+    const judgeIcon = document.createElement("span");
+    judgeIcon.className = "judge-icon thinking";
+
+    evaluationTitle.appendChild(judgeIcon);
+    evaluationTitle.appendChild(document.createTextNode("Évaluation des biais"));
 
     const evaluation = document.createElement("div");
     evaluation.className = "ai-response-content";
@@ -306,6 +325,42 @@ async function sendQuestionToAPI(question) {
         }
     }
 
+    // Texte de chaque source, pour l'afficher au survol : { "21": "Nom : Château | ..." }
+    let sources = {};
+
+    function readSources(context) {
+        sources = {};
+        const parts = context.split(/\[Source (\d+)\]/);
+        for (let i = 1; i < parts.length; i += 2) {
+            sources[parts[i]] = parts[i + 1].trim();
+        }
+    }
+
+    // Transforme "[Source 21]", "[21]" ou "source [21]" en petite étiquette
+    function sourcesToChips(text) {
+        return text.replace(
+            /(?:\bsources?\s*)?\[(?:source\s*)?(\d+)\]/gi,
+            (match, n) => `<span class="source-chip" data-source="${n}">Source ${n}</span>`
+        );
+    }
+
+    // Au survol d'une étiquette, on montre le texte de la donnée officielle
+    function addSourceTooltips(element) {
+        element.querySelectorAll(".source-chip").forEach((chip) => {
+            const text = sources[chip.dataset.source];
+            if (text) chip.title = text;
+        });
+    }
+
+    function renderEvaluation(text) {
+        renderMarkdown(evaluation, sourcesToChips(text));
+        addSourceTooltips(evaluation);
+    }
+
+    function stopThinking() {
+        judgeIcon.classList.remove("thinking");
+    }
+
     let answerText = "";
     let evaluationText = "";
 
@@ -323,7 +378,7 @@ async function sendQuestionToAPI(question) {
             // Rapport d'évaluation progressivement
             (chunk) => {
                 evaluationText += chunk;
-                renderMarkdown(evaluation, evaluationText);
+                renderEvaluation(evaluationText);
                 scrollToBottom();
             },
 
@@ -332,14 +387,21 @@ async function sendQuestionToAPI(question) {
                 console.log("Pipeline terminé :", result);
 
                 if (!evaluationText && result.evaluation_report) {
-                    renderMarkdown(evaluation, result.evaluation_report);
+                    renderEvaluation(result.evaluation_report);
                 }
 
+                stopThinking();
                 scrollToBottom();
-            }
+            },
+
+            // Données officielles envoyées au juge
+            (context) => readSources(context)
         );
 
+        stopThinking();
+
     } catch (error) {
+        stopThinking();
         answer.textContent = "Erreur : " + error.message;
         evaluation.textContent = "L'évaluation n'a pas pu être effectuée.";
 
