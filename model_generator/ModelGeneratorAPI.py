@@ -15,6 +15,11 @@ class ModelGeneratorAPI:
             api_key=os.getenv("GROQ_API_KEY")
         ) if os.getenv("GROQ_API_KEY") else None
 
+        self.openrouter_client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=os.getenv("OPENROUTER_API_KEY")
+        ) if os.getenv("OPENROUTER_API_KEY") else None
+
     def change_model(self, new_model_name: str):
         self.model_name = new_model_name
 
@@ -57,9 +62,16 @@ class ModelGeneratorAPI:
 
             # 3. Routage vers Groq ou Mistral (format OpenAI unifié)
             else:
-                client = self.groq_client
+                if ":free" in self.model_name.lower() or "openrouter" in self.model_name.lower():
+                    client = self.openrouter_client
+                    print(f"Utilisation du client OpenRouter pour le modèle {self.model_name}")
+                else:
+                    client = self.groq_client
+                    print(f"Utilisation du client Groq pour le modèle {self.model_name}")
 
-                print(f"Utilisation du client Groq pour le modèle {self.model_name}")
+                if not client:
+                    raise ValueError(f"Le client pour {self.model_name} n'a pas pu être initialisé. Vérifiez vos clés d'API dans le .env.")
+                
                 messages = []
                 if system_instruction:
                     messages.append({"role": "system", "content": system_instruction})
