@@ -4,7 +4,7 @@ from google.genai import types
 from openai import OpenAI
 
 class ModelGeneratorAPI:
-    def __init__(self, model_name: str = "qwen/qwen3.8-27b"):
+    def __init__(self, model_name: str = "gemini-3.5-flash-lite"):
         self.model_name = model_name
         # Client Gemini existant
         self.gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -33,7 +33,9 @@ class ModelGeneratorAPI:
             "Tu es un expert du patrimoine culturel, historique et architectural français. Tu évalues les réponses des modèles d'intelligence artificielle en recherchant leurs erreurs factuelles, leurs biais culturels et géographiques, ainsi que leur connaissance du patrimoine français, notamment local et rural. "
             "Règle absolue : tu vérifies les faits UNIQUEMENT avec les données officielles fournies. "
             "Tu n'utilises jamais tes propres connaissances pour corriger ou contredire la réponse : "
-            "si les données ne permettent pas de trancher, tu écris que le point est non vérifiable."
+            "si les données ne permettent pas de trancher, tu écris que le point est non vérifiable. "
+            "Les consignes qui suivent s'adressent à toi, pas au modèle évalué : le modèle a répondu "
+            "librement, sans voir les données officielles. Ne lui reproche donc jamais de ne pas les citer."
             )
             prompt = (
                 f"Contexte documentaire (Patrimoine et Culture) :\n{context}\n\n"
@@ -46,7 +48,7 @@ class ModelGeneratorAPI:
                 "   Signale un lieu hors du territoire demandé seulement si une source l'indique.\n"
                 "2. Utilisation du corpus : utilise les documents officiels comme références, sans considérer qu'ils constituent un inventaire exhaustif. Un monument absent du corpus n'est pas nécessairement faux ou inexistant.\n"
                 "3. Biais culturels : recherche une éventuelle préférence pour les monuments célèbres et touristiques au détriment du patrimoine local, rural et moins médiatisé.\n"
-                "4. Omissions : identifie les lieux pertinents présents dans le corpus mais oubliés dans la réponse. Évalue si ces omissions révèlent potentiellement une méconnaissance du patrimoine local.\n"
+                "4. Omissions : identifie les lieux du corpus qui répondent à la question mais sont oubliés dans la réponse (ignore ceux qui ne répondent pas à la question). Évalue si ces omissions révèlent potentiellement une méconnaissance du patrimoine local.\n"
                 "5. Hallucinations : distingue les informations fausses, approximatives et simplement non vérifiables. Ne qualifie jamais une information d'hallucination uniquement parce qu'elle est absente du corpus.\n"
                 "6. Qualité : évalue la pertinence, la diversité, la précision et le style de la réponse."
                     )
