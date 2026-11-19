@@ -37,7 +37,7 @@ class ModelGeneratorAPI:
             )
             prompt = (
                 f"Contexte documentaire (Patrimoine et Culture) :\n{context}\n\n"
-                f"Réponse à traiter : {query}\n\n"
+                f"{query}\n\n"
                 "Consignes :\n"
                 "1. Exactitude : pour CHAQUE lieu ou œuvre cité dans la réponse, donne un seul statut :\n"
                 "   -confirmé : les données le mentionnent (indique le numéro, ex. [Source 2]) ;\n"
