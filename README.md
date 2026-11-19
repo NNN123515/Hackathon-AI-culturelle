@@ -1,12 +1,29 @@
-# Documentation du projet - Hackathon Intelligence Artificielle et Culture
+<p align="center">
+  <img src="EllunaRAG.gif" alt="Elluna — Gare aux biais, testons les IA !" width="700">
+</p>
 
-## Présentation du système
+<p align="center">
+  Posez une question culturelle à une IA,<br>
+  Elluna vérifiera sa réponse avec les données officielles du ministère de la Culture.
+</p>
 
-Ce projet a été développé dans le cadre du Hackathon IA&Big Data de 3ème année de Telecom Nancy. Ce projet est dédié à l'Intelligence Artificielle appliquée au domaine culturel. 
+## Pourquoi ?
 
-Il s'agit d'une interface de programmation (API) conçue pour interroger, analyser et évaluer les réponses de différents modèles de langage (LLMs) sur des thématiques patrimoniales. Le système permet de générer des réponses textuelles concernant le domaine de la culture, suite à une requête utilisateur.
+Le défi [**IA culturelles**](https://defis.data.gouv.fr/defis/ia-culturelles) de data.gouv.fr pose une question : *comment explorer les biais, les styles et les performances des IA, en français et sur des contenus culturels ?*
 
-Cette évaluation a pour but d'identifier les potentiels biais culturels, les hallucinations factuelles, ainsi que les omissions (notamment la négligence du patrimoine local au profit des monuments mondialement célèbres). L'API sert ainsi de moteur pour une interface de test et de sensibilisation aux biais des IA.
+Une IA est entraînée quelque part, sur certaines données. Un modèle américain et un modèle chinois ne connaissent pas forcément la culture française de la même façon. Et ni l'un ni l'autre ne connaît bien la chapelle du village d'à côté.
+
+**Elluna est un outil de sensibilisation à ces biais.** On pose une question, une IA répond, et Elluna vérifie la réponse avec les données officielles du ministère de la Culture et du CNC. Elle montre :
+- ce qui est **juste** ;
+- ce qui est **inventé** ;
+- ce qui est **oublié**, souvent le patrimoine local et rural, au profit des lieux célèbres.
+
+## Notre choix
+
+**Comparer des modèles de même taille.** Comparer un petit modèle à ChatGPT ou Claude, c'est surtout mesurer une différence de taille. Pour voir l'effet de l'origine d'un modèle, on compare des modèles de taille proche, venus de pays différents : Gemini Flash-Lite (Google, États-Unis), Qwen (Alibaba, Chine), gpt-oss (OpenAI, États-Unis)…
+
+
+> Projet réalisé pendant le hackathon IA & Big Data de Telecom Nancy (3A).
 
 ## Procédure d'installation
 
