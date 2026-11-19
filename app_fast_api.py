@@ -4,6 +4,7 @@ from typing import Optional
 import json
 
 from rag_app import RAGApplication
+from model_generator.ModelGeneratorAPI import ModelGeneratorAPI # Assurez-vous que l'import correspond à votre structure
 
 # Initialisation de l'application FastAPI
 app = FastAPI(
@@ -14,6 +15,10 @@ app = FastAPI(
 
 # Initialisation globale de l'application RAG (charge le VectorStore et le modèle par défaut)
 rag_app = RAGApplication(top_k=5)
+
+# Initialisation d'un générateur fixe dédié uniquement à l'évaluation
+EVALUATION_MODEL_NAME = "openai/gpt-oss-120b"
+eval_generator = ModelGeneratorAPI(model_name=EVALUATION_MODEL_NAME)
 
 LOCAL_MODELS_LIST = {
     "Qwen/Qwen2.5-1.5B-Instruct",
@@ -117,10 +122,12 @@ async def evaluate_response(query: str, where: Optional[str] = None):
     """
 
     try:
+        retrieval_result = rag_app.pipeline.run(query, where=where)
+        context = retrieval_result.get("context", "")
+
         # Définition d'un générateur interne qui produit les chunks
         def token_generator():
-            for chunk in rag_app.answer_query(question=query, where=where, rag=True):
-                print(f"{chunk}")
+            for chunk in eval_generator.generate_response_stream(query=query, context=context):
                 yield chunk
 
         # On retourne une StreamingResponse avec un type texte/plain (ou text/event-stream)
@@ -138,6 +145,7 @@ async def run_full_pipeline(question: str, where: Optional[str] = None):
     3. Stream le rapport d'évaluation des biais basé sur ce contexte.
     4. Envoie l'objet récapitulatif complet à la fin.
     """
+    # Tield ("gen_chunk", chunk) ou ("evalèchunk", chunk)
     async def event_generator():
         try:
             # Génération de la réponse initiale en streaming ---
@@ -162,7 +170,7 @@ async def run_full_pipeline(question: str, where: Optional[str] = None):
             yield f"data: {json.dumps({'status': 'start_evaluation'})}\n\n"
             evaluation_report = ""
             
-            for chunk in rag_app.generator.generate_response_stream(query=generated_answer, context=context):
+            for chunk in eval_generator.generate_response_stream(query=generated_answer, context=context):
                 if chunk:
                     evaluation_report += chunk
                     print(f"{chunk}", end="", flush=True)

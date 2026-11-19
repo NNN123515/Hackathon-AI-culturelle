@@ -4,7 +4,7 @@ from google.genai import types
 from openai import OpenAI
 
 class ModelGeneratorAPI:
-    def __init__(self, model_name: str = "meta-llama/llama-3.1-8b-instruct:free"):
+    def __init__(self, model_name: str = "openai/gpt-oss-120b"):
         self.model_name = model_name
         # Client Gemini existant
         self.gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
