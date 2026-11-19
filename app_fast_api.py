@@ -14,7 +14,7 @@ app = FastAPI(
 )
 
 # Initialisation globale de l'application RAG (charge le VectorStore et le modèle par défaut)
-rag_app = RAGApplication(top_k=5)
+rag_app = RAGApplication(top_k=20)
 
 # Initialisation d'un générateur fixe dédié uniquement à l'évaluation
 EVALUATION_MODEL_NAME = "openai/gpt-oss-120b"
@@ -60,7 +60,7 @@ async def generate_response(question: str, where: Optional[str] = None):
     def token_generator():
         # Assurez-vous que votre méthode produit bien les chunks textuels
         for chunk in rag_app.answer_query(question=question, rag=False):
-            print(f"{chunk}") 
+            print(chunk, end="", flush=True)
             yield chunk
 
     return StreamingResponse(token_generator(), media_type="text/plain")
