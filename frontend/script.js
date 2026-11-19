@@ -55,6 +55,93 @@ async function changeModel(modelName) {
     return await response.json();
 }
 
+// Initialiser le sélecteur de modèles
+async function initModelSelector() {
+    const select = document.getElementById("modelSelect");
+    const status = document.getElementById("modelStatus");
+
+    try {
+        // Récupérer les modèles disponibles et le modèle actif
+        const [localModels, apiModels, currentModel] = await Promise.all([
+            getLocalModels(),
+            getApiModels(),
+            getCurrentModel()
+        ]);
+
+        // Vider le sélecteur
+        select.innerHTML = "";
+
+        // Ajouter les modèles locaux
+        const localGroup = document.createElement("optgroup");
+        localGroup.label = "Modèles locaux";
+
+        localModels.forEach(model => {
+            const option = document.createElement("option");
+            option.value = model;
+            option.textContent = model;
+            localGroup.appendChild(option);
+        });
+
+        // Ajouter les modèles API
+        const apiGroup = document.createElement("optgroup");
+        apiGroup.label = "Modèles API";
+
+        apiModels.forEach(model => {
+            const option = document.createElement("option");
+            option.value = model;
+            option.textContent = model;
+            apiGroup.appendChild(option);
+        });
+
+        select.appendChild(localGroup);
+        select.appendChild(apiGroup);
+
+        // Sélectionner le modèle actuellement utilisé
+        select.value = currentModel.current_model;
+        select.dataset.currentModel = currentModel.current_model;
+        select.disabled = false;
+
+        status.textContent = "Modèle actif";
+
+    } catch (error) {
+        status.textContent = "Impossible de charger les modèles.";
+        console.error("Erreur de chargement des modèles :", error);
+    }
+}
+
+
+// Réagir au changement de modèle
+document.getElementById("modelSelect").addEventListener("change", async (event) => {
+    const select = event.target;
+    const status = document.getElementById("modelStatus");
+
+    const selectedModel = select.value;
+    const previousModel = select.dataset.currentModel;
+
+    select.disabled = true;
+    status.textContent = "Changement en cours...";
+
+    try {
+        const result = await changeModel(selectedModel);
+
+        // Mémoriser le nouveau modèle actif
+        select.dataset.currentModel = result.current_model;
+        select.value = result.current_model;
+
+        status.textContent = "Modèle changé avec succès.";
+
+    } catch (error) {
+        // Revenir au modèle précédent en cas d'échec
+        select.value = previousModel;
+        status.textContent = "Erreur lors du changement de modèle.";
+
+        console.error(error);
+
+    } finally {
+        select.disabled = false;
+    }
+});
+
 // Générer une réponse seule (sans évaluation)
 async function generateAnswer(question, onChunk) {
     const params = new URLSearchParams({ question });
@@ -268,3 +355,7 @@ document.getElementById("followupForm")
 
     input.value = "";
 });
+
+
+
+initModelSelector();
