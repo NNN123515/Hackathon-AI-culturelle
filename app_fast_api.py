@@ -1,17 +1,56 @@
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import StreamingResponse 
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from typing import Optional
 import json
+import asyncio
 
 from rag_app import RAGApplication
 from model_generator.ModelGeneratorAPI import ModelGeneratorAPI # Assurez-vous que l'import correspond à votre structure
 
-# Initialisation de l'application FastAPI
 app = FastAPI(
     title="API IA Culturelle",
     description="API FastAPI permettant d'évaluer, à l'aide d'un modèle d'IA, la pertinence et la véracité des réponses générées par un modèle d'IA par rapport à un contexte culturel et patrimonial fourni.",
     version="1.0.0"
 )
+
+
+BASE_DIR = Path(__file__).resolve().parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+ASSETS_DIR = FRONTEND_DIR / "assets"
+
+if not FRONTEND_DIR.exists():
+    raise RuntimeError(f"Dossier frontend introuvable : {FRONTEND_DIR}")
+
+if not (FRONTEND_DIR / "index.html").exists():
+    raise RuntimeError(f"index.html introuvable dans : {FRONTEND_DIR}")
+
+if ASSETS_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
+
+
+@app.get("/", include_in_schema=False)
+def serve_home():
+    print("[FRONTEND] GET / -> envoi de index.html", flush=True)
+    return FileResponse(FRONTEND_DIR / "index.html")
+
+
+@app.get("/style.css", include_in_schema=False)
+def serve_css():
+    print("[FRONTEND] GET /style.css", flush=True)
+    return FileResponse(FRONTEND_DIR / "style.css")
+
+
+@app.get("/script.js", include_in_schema=False)
+def serve_js():
+    print("[FRONTEND] GET /script.js", flush=True)
+    return FileResponse(FRONTEND_DIR / "script.js")
+
+
+
+
+
 
 # Initialisation globale de l'application RAG (charge le VectorStore et le modèle par défaut)
 rag_app = RAGApplication(top_k=5)
@@ -19,6 +58,7 @@ rag_app = RAGApplication(top_k=5)
 # Initialisation d'un générateur fixe dédié uniquement à l'évaluation
 EVALUATION_MODEL_NAME = "openai/gpt-oss-120b"
 eval_generator = ModelGeneratorAPI(model_name=EVALUATION_MODEL_NAME)
+
 
 LOCAL_MODELS_LIST = {
     "Qwen/Qwen2.5-1.5B-Instruct",
@@ -40,30 +80,45 @@ API_MODELS_LIST = {
 
 AVAILABLE_MODELS = tuple(LOCAL_MODELS_LIST.union(API_MODELS_LIST))
 
-# --- Routes de l'API ---
 
-@app.get("/")
-def read_root():
-    """Route racine pour vérifier l'état de l'API."""
-    return {
-        "status": "online",
-        "message": "Bienvenue sur l'API RAG et d'Évaluation.",
-        "current_model": rag_app.generator.model_name
-    }
+
+# ============================================================
+# ROUTES DE L'API
+# ============================================================
+
+@app.get("/health")
+def health_check():
+    """Vérifie l'état réel de l'API et du modèle."""
+    try:
+        return {
+            "status": "online",
+            "message": "L'API IA Culturelle fonctionne correctement.",
+            "current_model": rag_app.generator.model_name
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"API indisponible : {str(e)}"
+        )
 
 
 @app.post("/generate")
 async def generate_response(question: str, where: Optional[str] = None):
     """
-    Reçoit une requête utilisateur et renvoie la réponse en streaming pur.
+    Reçoit une requête utilisateur et renvoie une réponse de test en streaming.
     """
-    def token_generator():
-        # Assurez-vous que votre méthode produit bien les chunks textuels
-        for chunk in rag_app.answer_query(question=question, rag=False):
-            print(f"{chunk}") 
-            yield chunk
+    print("[API] POST /generate reçu", flush=True)
+    print(f"[API] question = {question}", flush=True)
+    print(f"[API] where = {where}", flush=True)
 
+    def token_generator():
+         # Assurez-vous que votre méthode produit bien les chunks textuels
+         for chunk in rag_app.answer_query(question=question, rag=False):
+             print(f"{chunk}")
+             yield chunk
+    
     return StreamingResponse(token_generator(), media_type="text/plain")
+
 
 @app.post("/change_model")
 def change_model(new_model: str):
@@ -98,26 +153,29 @@ def change_model(new_model: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/get_model")
 def get_current_model():
     """
-    Récupère le nom du modèle actuellement configuré.
+    Récupère le nom du modèle fictif actuellement sélectionné.
     """
+    print("[API] GET /get_model reçu", flush=True)
     return {"current_model": rag_app.generator.model_name}
+
 
 @app.get("/models/local")
 def list_local_models():
-    """
-    Renvoie simplement la liste des noms de modèles locaux disponibles.
-    """
-    return LOCAL_MODELS_LIST
+    """Renvoie la liste des noms de modèles locaux disponibles."""
+    print("[API] GET /models/local reçu", flush=True)
+    return sorted(LOCAL_MODELS_LIST)
+
 
 @app.get("/models/api")
 def list_api_models():
-    """
-    Renvoie simplement la liste des noms de modèles API disponibles.
-    """
-    return API_MODELS_LIST
+    """Renvoie la liste des noms de modèles API disponibles."""
+    print("[API] GET /models/api reçu", flush=True)
+    return sorted(API_MODELS_LIST)
+
 
 @app.post("/evaluate")
 async def evaluate_response(query: str, where: Optional[str] = None):
@@ -139,6 +197,8 @@ async def evaluate_response(query: str, where: Optional[str] = None):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
 
 @app.post("/run-full-pipeline")
 async def run_full_pipeline(question: str, where: Optional[str] = None):
