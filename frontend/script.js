@@ -56,90 +56,112 @@ async function changeModel(modelName) {
 }
 
 // Initialiser le sélecteur de modèles
+// Initialiser les sélecteurs de modèles
 async function initModelSelector() {
-    const select = document.getElementById("modelSelect");
-    const status = document.getElementById("modelStatus");
+
+    const selectors = [
+        {
+            select: document.getElementById("modelSelectHome"),
+            status: document.querySelector("#homeScreen .model-status")
+        },
+        {
+            select: document.getElementById("modelSelectChat"),
+            status: document.querySelector("#answerScreen .model-status")
+        }
+    ];
 
     try {
-        // Récupérer les modèles disponibles et le modèle actif
         const [localModels, apiModels, currentModel] = await Promise.all([
             getLocalModels(),
             getApiModels(),
             getCurrentModel()
         ]);
 
-        // Vider le sélecteur
-        select.innerHTML = "";
+        const activeModel = currentModel.current_model;
 
-        // Ajouter les modèles locaux
-        const localGroup = document.createElement("optgroup");
-        localGroup.label = "Modèles locaux";
+        selectors.forEach(({ select, status }) => {
 
-        localModels.forEach(model => {
-            const option = document.createElement("option");
-            option.value = model;
-            option.textContent = model;
-            localGroup.appendChild(option);
+            if (!select) return;
+
+            select.innerHTML = "";
+
+            const localGroup = document.createElement("optgroup");
+            localGroup.label = "Modèles locaux";
+
+            localModels.forEach(model => {
+                localGroup.appendChild(new Option(model, model));
+            });
+
+            const apiGroup = document.createElement("optgroup");
+            apiGroup.label = "Modèles API";
+
+            apiModels.forEach(model => {
+                apiGroup.appendChild(new Option(model, model));
+            });
+
+            select.appendChild(localGroup);
+            select.appendChild(apiGroup);
+
+            select.value = activeModel;
+            select.dataset.currentModel = activeModel;
+            select.disabled = false;
+
+            if (status) status.textContent = "Modèle actif";
         });
-
-        // Ajouter les modèles API
-        const apiGroup = document.createElement("optgroup");
-        apiGroup.label = "Modèles API";
-
-        apiModels.forEach(model => {
-            const option = document.createElement("option");
-            option.value = model;
-            option.textContent = model;
-            apiGroup.appendChild(option);
-        });
-
-        select.appendChild(localGroup);
-        select.appendChild(apiGroup);
-
-        // Sélectionner le modèle actuellement utilisé
-        select.value = currentModel.current_model;
-        select.dataset.currentModel = currentModel.current_model;
-        select.disabled = false;
-
-        status.textContent = "Modèle actif";
 
     } catch (error) {
-        status.textContent = "Impossible de charger les modèles.";
         console.error("Erreur de chargement des modèles :", error);
     }
 }
 
 
 // Réagir au changement de modèle
-document.getElementById("modelSelect").addEventListener("change", async (event) => {
-    const select = event.target;
-    const status = document.getElementById("modelStatus");
+document.querySelectorAll("#modelSelectHome, #modelSelectChat")
+.forEach(select => {
 
-    const selectedModel = select.value;
-    const previousModel = select.dataset.currentModel;
+    select.addEventListener("change", async (event) => {
 
-    select.disabled = true;
-    status.textContent = "Changement en cours...";
+        const selectedModel = event.target.value;
 
-    try {
-        const result = await changeModel(selectedModel);
+        const selectors = document.querySelectorAll(
+            "#modelSelectHome, #modelSelectChat"
+        );
 
-        // Mémoriser le nouveau modèle actif
-        select.dataset.currentModel = result.current_model;
-        select.value = result.current_model;
+        const statuses = document.querySelectorAll(".model-status");
 
-        status.textContent = "Modèle changé avec succès.";
+        const previousModel = select.dataset.currentModel;
 
-    } catch (error) {
-        // Revenir au modèle précédent en cas d'échec
-        select.value = previousModel;
-        status.textContent = "Erreur lors du changement de modèle.";
+        selectors.forEach(s => s.disabled = true);
+        statuses.forEach(s => s.textContent = "Changement en cours...");
 
-        console.error(error);
+        try {
+            const result = await changeModel(selectedModel);
 
-    } finally {
-        select.disabled = false;
-    }
+            selectors.forEach(s => {
+                s.value = result.current_model;
+                s.dataset.currentModel = result.current_model;
+            });
+
+            statuses.forEach(s => {
+                s.textContent = "Modèle actif";
+            });
+
+        } catch (error) {
+
+            selectors.forEach(s => {
+                s.value = previousModel;
+            });
+
+            statuses.forEach(s => {
+                s.textContent = "Erreur lors du changement";
+            });
+
+            console.error(error);
+
+        } finally {
+            selectors.forEach(s => s.disabled = false);
+        }
+    });
 });
 
 // Générer une réponse seule (sans évaluation)
