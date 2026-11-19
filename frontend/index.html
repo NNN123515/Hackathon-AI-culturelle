@@ -40,6 +40,13 @@
       <div class="answer-logo">
         <img src="assets/brand-logo.png" alt="Elluna">
       </div>
+      <div class="model-selector">
+        <label for="modelSelect">Modèle utilisé :</label>
+        <select id="modelSelect" disabled>
+          <option>Chargement des modèles...</option>
+        </select>
+        <span id="modelStatus" aria-live="polite"></span>
+      </div>
       <div class="chat-container">
         <div class="chat-messages" id="chatMessages">
         </div>
