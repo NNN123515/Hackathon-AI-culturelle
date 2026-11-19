@@ -31,7 +31,11 @@ API_MODELS_LIST = {
     "gemini-3.1-flash-lite",
     "openai/gpt-oss-20b",
     "openai/gpt-oss-120b",
-    "qwen/qwen3.8-27b"
+    "qwen/qwen3.8-27b",
+    "nvidia/nemotron-3.5-lightning:free",
+    "liquid/lfm-3-1.7b:free",
+    "cohere/north-mini-code:free",
+    "baidu/ernie-5.5-flash-preview:free"
 }
 
 AVAILABLE_MODELS = tuple(LOCAL_MODELS_LIST.union(API_MODELS_LIST))
