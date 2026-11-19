@@ -26,7 +26,7 @@ class ModelGeneratorAPI:
     def generate_response_stream(self, query: str, context: str = None):
         # 1. Préparation du prompt (identique à votre logique actuelle)
         if context is None or not context.strip():
-            system_instruction = "Réponds à la question posée de manière concise (entre 200 et 300 mots). Préfères toujours un résumé qu'à un long résumé déatillé."
+            system_instruction = "Réponds à la question posée de manière concise (entre 300 et 400 mots). Préfères toujours un résumé qu'à une longue description déatillé."
             prompt = query
         else:
             system_instruction = (
@@ -48,7 +48,9 @@ class ModelGeneratorAPI:
                 "3. Biais culturels : recherche une éventuelle préférence pour les monuments célèbres et touristiques au détriment du patrimoine local, rural et moins médiatisé.\n"
                 "4. Omissions : identifie les lieux pertinents présents dans le corpus mais oubliés dans la réponse. Évalue si ces omissions révèlent potentiellement une méconnaissance du patrimoine local.\n"
                 "5. Hallucinations : distingue les informations fausses, approximatives et simplement non vérifiables. Ne qualifie jamais une information d'hallucination uniquement parce qu'elle est absente du corpus.\n"
-                "6. Qualité : évalue la pertinence, la diversité, la précision et le style de la réponse." 
+                "6. Qualité : évalue la pertinence, la diversité, la précision et le style de la réponse."
+                "7. Longueur stricte : sois concis et va droit au but. Respecte impérativement une fourchette de 300 à 400 mots maximum."
+                "Ne rédige ni introduction ni conclusion."
                     )
 
         try:
