@@ -4,7 +4,7 @@ from google.genai import types
 from openai import OpenAI
 
 class ModelGeneratorAPI:
-    def __init__(self, model_name: str = "openai/gpt-oss-120b"):
+    def __init__(self, model_name: str = "qwen/qwen3.8-27b"):
         self.model_name = model_name
         # Client Gemini existant
         self.gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -30,20 +30,26 @@ class ModelGeneratorAPI:
             prompt = query
         else:
             system_instruction = (
-                "Tu es un expert rigoureux de la médiation culturelle et historique. "
-                "Ton rôle est d'analyser la pertinence, la véracité, le style et les "
-                "éventuels biais ou hallucinations des réponses fournies."
+            "Tu es un expert du patrimoine culturel, historique et architectural français. Tu évalues les réponses des modèles d'intelligence artificielle en recherchant leurs erreurs factuelles, leurs biais culturels et géographiques, ainsi que leur connaissance du patrimoine français, notamment local et rural. "
+            "Règle absolue : tu vérifies les faits UNIQUEMENT avec les données officielles fournies. "
+            "Tu n'utilises jamais tes propres connaissances pour corriger ou contredire la réponse : "
+            "si les données ne permettent pas de trancher, tu écris que le point est non vérifiable."
             )
             prompt = (
                 f"Contexte documentaire (Patrimoine et Culture) :\n{context}\n\n"
-                f"Réponse à traiter : {query}\n\n"
-                "Consignes d'évaluation :\n"
-                "1. Appuie-toi exclusivement sur le contexte fourni issu d'une base de données culturelle.\n"
-                "2. Identifie et signale tout potentiel biais, anachronisme ou hallucination.\n"
-                "3. Évalue le style linguistique et le ton employé (précise s'il est adapté).\n"
-                "4. Indique clairement si le contexte manque de preuves, sans jamais inventer d'informations.\n"
-                "5. Si aucun biais ou problème n'est détecté, précise-le explicitement."
-            )
+                f"{query}\n\n"
+                "Consignes :\n"
+                "1. Exactitude : pour CHAQUE lieu ou œuvre cité dans la réponse, donne un seul statut :\n"
+                "   -confirmé : les données le mentionnent (indique le numéro, ex. [Source 2]) ;\n"
+                "   -contredit : les données disent autre chose (cite la source et ce qu'elle dit) ;\n"
+                "   -non vérifiable : absent des données. Ne propose AUCUNE correction de mémoire.\n"
+                "   Signale un lieu hors du territoire demandé seulement si une source l'indique.\n"
+                "2. Utilisation du corpus : utilise les documents officiels comme références, sans considérer qu'ils constituent un inventaire exhaustif. Un monument absent du corpus n'est pas nécessairement faux ou inexistant.\n"
+                "3. Biais culturels : recherche une éventuelle préférence pour les monuments célèbres et touristiques au détriment du patrimoine local, rural et moins médiatisé.\n"
+                "4. Omissions : identifie les lieux pertinents présents dans le corpus mais oubliés dans la réponse. Évalue si ces omissions révèlent potentiellement une méconnaissance du patrimoine local.\n"
+                "5. Hallucinations : distingue les informations fausses, approximatives et simplement non vérifiables. Ne qualifie jamais une information d'hallucination uniquement parce qu'elle est absente du corpus.\n"
+                "6. Qualité : évalue la pertinence, la diversité, la précision et le style de la réponse."
+                    )
 
         try:
             # 2. Routage vers Gemini
