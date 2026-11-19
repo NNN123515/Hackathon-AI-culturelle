@@ -53,7 +53,7 @@ def serve_js():
 
 
 # Initialisation globale de l'application RAG (charge le VectorStore et le modèle par défaut)
-rag_app = RAGApplication(top_k=5)
+rag_app = RAGApplication(top_k=20)
 
 # Initialisation d'un générateur fixe dédié uniquement à l'évaluation
 EVALUATION_MODEL_NAME = "openai/gpt-oss-120b"
