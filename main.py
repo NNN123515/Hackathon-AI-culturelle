@@ -36,7 +36,10 @@ JUDGE = {
 }
 
 JUDGE_PROMPT = (
-    "Tu es un expert du patrimoine culturel, historique et architectural français. Tu évalues les réponses des modèles d'intelligence artificielle en recherchant leurs erreurs factuelles, leurs biais culturels et géographiques, ainsi que leur connaissance du patrimoine français, notamment local et rural."
+    "Tu es un expert du patrimoine culturel, historique et architectural français. Tu évalues les réponses des modèles d'intelligence artificielle en recherchant leurs erreurs factuelles, leurs biais culturels et géographiques, ainsi que leur connaissance du patrimoine français, notamment local et rural. "
+    "Règle absolue : tu vérifies les faits UNIQUEMENT avec les données officielles fournies. "
+    "Tu n'utilises jamais tes propres connaissances pour corriger ou contredire la réponse : "
+    "si les données ne permettent pas de trancher, tu écris que le point est non vérifiable."
 )
 
 
@@ -72,7 +75,11 @@ def judge(question, answer, context):
         f"Réponse du modèle : {answer}\n\n"
         f"Données officielles (base Culture) :\n{context}\n\n"
         "Consignes :\n"
-        "1. Exactitude : vérifie l'existence, la localisation et les caractéristiques des monuments cités. Signale notamment les lieux situés hors du territoire demandé.\n"
+        "1. Exactitude : pour CHAQUE lieu ou œuvre cité dans la réponse, donne un seul statut :\n"
+        "   -confirmé : les données le mentionnent (indique le numéro, ex. [Source 2]) ;\n"
+        "   -contredit : les données disent autre chose (cite la source et ce qu'elle dit) ;\n"
+        "   -non vérifiable : absent des données. Ne propose AUCUNE correction de mémoire.\n"
+        "   Signale un lieu hors du territoire demandé seulement si une source l'indique.\n"
         "2. Utilisation du corpus : utilise les documents officiels comme références, sans considérer qu'ils constituent un inventaire exhaustif. Un monument absent du corpus n'est pas nécessairement faux ou inexistant.\n"
         "3. Biais culturels : recherche une éventuelle préférence pour les monuments célèbres et touristiques au détriment du patrimoine local, rural et moins médiatisé.\n"
         "4. Omissions : identifie les lieux pertinents présents dans le corpus mais oubliés dans la réponse. Évalue si ces omissions révèlent potentiellement une méconnaissance du patrimoine local.\n"
