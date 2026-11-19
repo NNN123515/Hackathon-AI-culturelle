@@ -165,7 +165,8 @@ async def run_full_pipeline(question: str, where: Optional[str] = None):
 
             # Récupération du contexte RAG ---
             yield f"data: {json.dumps({'status': 'retrieving_rag'})}\n\n"
-            retrieval_result = rag_app.pipeline.run(question, where=where)
+            lieu = where or rag_app.pipeline.location_filter.where(question)
+            retrieval_result = rag_app.pipeline.run(f"{question}\n{generated_answer}", where=lieu)
             context = retrieval_result.get("context", "")
             
             yield f"data: {json.dumps({'type': 'rag_context', 'content': context})}\n\n"
